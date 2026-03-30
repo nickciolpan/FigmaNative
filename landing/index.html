@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FigmaNative — Figma to React Native, Two-Way</title>
+  <meta name="description" content="Export Figma designs to production React Native code. Sync components back. Works with NativeWind or StyleSheet.create().">
+  <style>
+    :root {
+      --bg: #09090B;
+      --surface: #18181B;
+      --surface-hover: #27272A;
+      --border: #27272A;
+      --text: #FAFAFA;
+      --text-sub: #A1A1AA;
+      --accent: #00C9A7;
+      --accent-dim: #00C9A720;
+      --purple: #8B5CF6;
+      --purple-dim: #8B5CF620;
+      --blue: #3B82F6;
+      --blue-dim: #3B82F620;
+      --orange: #F97316;
+      --orange-dim: #F9731620;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Layout ───────────────────────────── */
+
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    section {
+      padding: 96px 0;
+    }
+
+    /* ─── Nav ──────────────────────────────── */
+
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: #09090BCC;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    nav .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+
+    .logo {
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+      background: var(--accent);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--bg);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      align-items: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-sub);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.15s;
+    }
+
+    .nav-links a:hover { color: var(--text); }
+
+    .nav-cta {
+      background: var(--text) !important;
+      color: var(--bg) !important;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600 !important;
+      transition: opacity 0.15s !important;
+    }
+
+    .nav-cta:hover { opacity: 0.85; }
+
+    /* ─── Hero ─────────────────────────────── */
+
+    .hero {
+      padding: 160px 0 96px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 600px;
+      background: radial-gradient(ellipse, var(--accent-dim) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 13px;
+      color: var(--text-sub);
+      margin-bottom: 32px;
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    h1 {
+      font-size: clamp(40px, 6vw, 64px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    h1 .gradient {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--blue) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 18px;
+      color: var(--text-sub);
+      max-width: 560px;
+      margin: 0 auto 48px;
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.15s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--text);
+      color: var(--bg);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.85;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--surface-hover);
+      border-color: #3F3F46;
+    }
+
+    /* ─── Code Preview ─────────────────────── */
+
+    .code-preview {
+      margin-top: 64px;
+      position: relative;
+    }
+
+    .code-window {
+      background: #0C0C0E;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      text-align: left;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .code-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      background: #111113;
+    }
+
+    .code-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #3F3F46;
+    }
+
+    .code-dot:nth-child(1) { background: #EF4444; }
+    .code-dot:nth-child(2) { background: #EAB308; }
+    .code-dot:nth-child(3) { background: #22C55E; }
+
+    .code-tab {
+      margin-left: 16px;
+      font-size: 12px;
+      color: var(--text-sub);
+      background: var(--surface);
+      padding: 4px 12px;
+      border-radius: 4px;
+    }
+
+    .code-body {
+      padding: 24px;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 13px;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+
+    .code-body .kw { color: #C084FC; }
+    .code-body .fn { color: #60A5FA; }
+    .code-body .str { color: #34D399; }
+    .code-body .cmt { color: #52525C; }
+    .code-body .tag { color: #F472B6; }
+    .code-body .attr { color: #FDBA74; }
+    .code-body .num { color: #FDBA74; }
+    .code-body .tok { color: #00C9A7; }
+
+    /* ─── Flow Diagram ─────────────────────── */
+
+    .flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 48px;
+      flex-wrap: wrap;
+    }
+
+    .flow-node {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 28px;
+      text-align: center;
+      min-width: 160px;
+    }
+
+    .flow-node-label {
+      font-size: 13px;
+      color: var(--text-sub);
+      margin-bottom: 4px;
+    }
+
+    .flow-node-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .flow-arrow {
+      font-size: 24px;
+      color: var(--accent);
+    }
+
+    /* ─── Features ─────────────────────────── */
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      transition: border-color 0.2s;
+    }
+
+    .feature-card:hover {
+      border-color: #3F3F46;
+    }
+
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+
+    .feature-card h3 {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-sub);
+      line-height: 1.7;
+    }
+
+    /* ─── How It Works ─────────────────────── */
+
+    .section-label {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    .section-sub {
+      font-size: 16px;
+      color: var(--text-sub);
+      max-width: 520px;
+      line-height: 1.7;
+      margin-bottom: 56px;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 32px;
+      counter-reset: step;
+    }
+
+    .step {
+      counter-increment: step;
+      position: relative;
+    }
+
+    .step::before {
+      content: counter(step);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+
+    .step h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .step p {
+      font-size: 14px;
+      color: var(--text-sub);
+      line-height: 1.7;
+    }
+
+    .step code {
+      display: block;
+      margin-top: 12px;
+      background: #0C0C0E;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 13px;
+      color: var(--accent);
+    }
+
+    /* ─── Backends ──────────────────────────── */
+
+    .backends {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 700px) {
+      .backends { grid-template-columns: 1fr; }
+    }
+
+    .backend-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+    }
+
+    .backend-card h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .backend-card h3 span {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 100px;
+    }
+
+    .backend-card p {
+      font-size: 14px;
+      color: var(--text-sub);
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+
+    .backend-code {
+      background: #0C0C0E;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+
+    /* ─── Stats ─────────────────────────────── */
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      text-align: center;
+    }
+
+    @media (max-width: 600px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px 16px;
+    }
+
+    .stat-value {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--accent), var(--blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-sub);
+      margin-top: 4px;
+    }
+
+    /* ─── CTA ──────────────────────────────── */
+
+    .cta-section {
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      bottom: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 500px;
+      background: radial-gradient(ellipse, var(--purple-dim) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-section .section-title {
+      max-width: 480px;
+      margin: 0 auto 16px;
+    }
+
+    .cta-section .section-sub {
+      margin: 0 auto 40px;
+    }
+
+    /* ─── Footer ───────────────────────────── */
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 0;
+    }
+
+    footer .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    footer p {
+      font-size: 13px;
+      color: #52525C;
+    }
+
+    footer a {
+      color: var(--text-sub);
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    footer a:hover { color: var(--text); }
+
+    /* ─── Responsive ───────────────────────── */
+
+    @media (max-width: 640px) {
+      section { padding: 64px 0; }
+      .hero { padding: 120px 0 64px; }
+      .nav-links { display: none; }
+      .flow { gap: 12px; }
+      .flow-node { min-width: 120px; padding: 14px 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── Nav ──────────────────────────────────────────────────── -->
+<nav>
+  <div class="container">
+    <a href="#" class="logo">
+      <div class="logo-icon">FN</div>
+      FigmaNative
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#how">How It Works</a></li>
+      <li><a href="#backends">Backends</a></li>
+      <li><a href="https://github.com" class="nav-cta">Get Started</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ─── Hero ─────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="container">
+    <div class="badge">
+      <span class="badge-dot"></span>
+      Open Source &middot; Style-System Agnostic
+    </div>
+    <h1>Figma to React Native.<br><span class="gradient">Two-Way.</span></h1>
+    <p class="hero-sub">
+      Export Figma designs to production-ready React Native code. Sync components back to Figma. Works with NativeWind <em>or</em> StyleSheet.create().
+    </p>
+    <div class="hero-actions">
+      <a href="#how" class="btn btn-primary">Get Started</a>
+      <a href="#features" class="btn btn-secondary">See How It Works</a>
+    </div>
+
+    <div class="flow">
+      <div class="flow-node">
+        <div class="flow-node-label">Design</div>
+        <div class="flow-node-title">Figma</div>
+      </div>
+      <div class="flow-arrow">&harr;</div>
+      <div class="flow-node">
+        <div class="flow-node-label">Bridge</div>
+        <div class="flow-node-title">FigmaNative</div>
+      </div>
+      <div class="flow-arrow">&harr;</div>
+      <div class="flow-node">
+        <div class="flow-node-label">Code</div>
+        <div class="flow-node-title">React Native</div>
+      </div>
+    </div>
+
+    <div class="code-preview">
+      <div class="code-window">
+        <div class="code-header">
+          <span class="code-dot"></span>
+          <span class="code-dot"></span>
+          <span class="code-dot"></span>
+          <span class="code-tab">HomeScreen.tsx</span>
+        </div>
+        <div class="code-body">
+<span class="kw">import</span> React <span class="kw">from</span> <span class="str">"react"</span>;
+<span class="kw">import</span> { View, StyleSheet, Text } <span class="kw">from</span> <span class="str">"react-native"</span>;
+<span class="kw">import</span> { <span class="fn">useColors</span> } <span class="kw">from</span> <span class="str">"../theme/colors"</span>;
+
+<span class="kw">export function</span> <span class="fn">HomeScreen</span>() {
+  <span class="kw">const</span> Colors = <span class="fn">useColors</span>();
+
+  <span class="kw">const</span> styles = React.<span class="fn">useMemo</span>(() =&gt; StyleSheet.<span class="fn">create</span>({
+    <span class="attr">container</span>: {
+      <span class="attr">gap</span>: <span class="num">24</span>,
+      <span class="attr">padding</span>: <span class="num">16</span>,
+      <span class="attr">backgroundColor</span>: <span class="tok">Colors.background</span>,
+    },
+  }), [Colors]);
+
+  <span class="kw">return</span> (
+    <span class="tag">&lt;View</span> <span class="attr">style</span>={styles.container}<span class="tag">&gt;</span>
+      <span class="tag">&lt;Text</span> <span class="attr">style</span>={styles.title}<span class="tag">&gt;</span>Welcome<span class="tag">&lt;/Text&gt;</span>
+    <span class="tag">&lt;/View&gt;</span>
+  );
+}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Features ─────────────────────────────────────────────── -->
+<section id="features">
+  <div class="container">
+    <div class="section-label">Features</div>
+    <div class="section-title">Everything you need</div>
+    <p class="section-sub">From single components to entire screens, FigmaNative handles the translation.</p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon" style="background: var(--accent-dim); color: var(--accent);">&harr;</div>
+        <h3>Two-Way Sync</h3>
+        <p>Export Figma components to code, or sync existing React Native components back into Figma. Changes flow in both directions.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: var(--purple-dim); color: var(--purple);">&lt;/&gt;</div>
+        <h3>Style-System Agnostic</h3>
+        <p>Works with NativeWind (Tailwind) or StyleSheet.create(). Configure once in figmanative.config.js, generate code that matches your project.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: var(--blue-dim); color: var(--blue);">{}</div>
+        <h3>Theme-Aware Colors</h3>
+        <p>Maps Figma fill colors to your theme tokens automatically. Colors.brand instead of hardcoded hex. Dark mode ready.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: var(--orange-dim); color: var(--orange);">Aa</div>
+        <h3>Full Typography</h3>
+        <p>Font size, weight, line height, letter spacing, text alignment. All extracted from Figma and mapped to your preferred style system.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: var(--accent-dim); color: var(--accent);">&#9632;</div>
+        <h3>Borders, Shadows, Gradients</h3>
+        <p>Strokes become borderWidth/borderColor. Drop shadows map to iOS shadowProps and Android elevation. Gradients become LinearGradient.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: var(--purple-dim); color: var(--purple);">&#9881;</div>
+        <h3>Component Recognition</h3>
+        <p>Known components (Button, Card, Input) are matched automatically. Register custom components via config for your own library.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Stats ────────────────────────────────────────────────── -->
+<section>
+  <div class="container">
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value">2</div>
+        <div class="stat-label">Style Backends</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">92</div>
+        <div class="stat-label">Tests Passing</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">0</div>
+        <div class="stat-label">Dependencies*</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">&lt;1s</div>
+        <div class="stat-label">Export Time</div>
+      </div>
+    </div>
+    <p style="text-align: center; font-size: 12px; color: #3F3F46; margin-top: 12px;">* Beyond React Native and TypeScript</p>
+  </div>
+</section>
+
+<!-- ─── How It Works ─────────────────────────────────────────── -->
+<section id="how">
+  <div class="container">
+    <div class="section-label">How It Works</div>
+    <div class="section-title">Three steps to production code</div>
+    <p class="section-sub">No boilerplate. No copy-paste. Just select in Figma and press export.</p>
+
+    <div class="steps">
+      <div class="step">
+        <h3>Configure once</h3>
+        <p>Drop a config file in your project root. Tell FigmaNative your style system and theme tokens.</p>
+        <code>// figmanative.config.js<br>mode: "stylesheet"<br>theme.hook: "useColors"</code>
+      </div>
+      <div class="step">
+        <h3>Start the bridge</h3>
+        <p>One command starts the local server that connects the Figma plugin to your codebase.</p>
+        <code>npx figma2native serve</code>
+      </div>
+      <div class="step">
+        <h3>Export from Figma</h3>
+        <p>Select a component or frame in Figma, click "Export to React Native". Code appears in your project.</p>
+        <code>src/components/Card.tsx &#10003;</code>
+      </div>
+      <div class="step">
+        <h3>Sync back</h3>
+        <p>Click "Sync from Code" in the plugin. Your React Native components appear as Figma components with full fidelity.</p>
+        <code>Figma &larr; 6 components synced</code>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Backends ──────────────────────────────────────────────── -->
+<section id="backends" style="border-top: 1px solid var(--border);">
+  <div class="container">
+    <div class="section-label">Style Backends</div>
+    <div class="section-title">Your style system, your rules</div>
+    <p class="section-sub">Same Figma design, different output. Choose the backend that matches your project.</p>
+
+    <div class="backends">
+      <div class="backend-card">
+        <h3>NativeWind <span style="background: var(--blue-dim); color: var(--blue);">Tailwind</span></h3>
+        <p>Generates className strings with Tailwind utility classes. Perfect for NativeWind projects.</p>
+        <div class="backend-code">
+<span style="color:#C084FC">import</span> { View, Text } <span style="color:#C084FC">from</span> <span style="color:#34D399">"react-native"</span>;
+
+<span style="color:#C084FC">export function</span> <span style="color:#60A5FA">Card</span>() {
+  <span style="color:#C084FC">return</span> (
+    &lt;<span style="color:#F472B6">View</span> <span style="color:#FDBA74">className</span>=<span style="color:#34D399">"p-4 gap-3 rounded-lg
+      bg-gray-50 items-center"</span>&gt;
+      &lt;<span style="color:#F472B6">Text</span> <span style="color:#FDBA74">className</span>=<span style="color:#34D399">"text-lg
+        font-bold text-gray-900"</span>&gt;
+        Title
+      &lt;/<span style="color:#F472B6">Text</span>&gt;
+    &lt;/<span style="color:#F472B6">View</span>&gt;
+  );
+}
+        </div>
+      </div>
+      <div class="backend-card">
+        <h3>StyleSheet <span style="background: var(--accent-dim); color: var(--accent);">Theme-Aware</span></h3>
+        <p>Generates StyleSheet.create() with useMemo and your theme hook. Matches existing codebases.</p>
+        <div class="backend-code">
+<span style="color:#C084FC">const</span> Colors = <span style="color:#60A5FA">useColors</span>();
+
+<span style="color:#C084FC">const</span> styles = React.<span style="color:#60A5FA">useMemo</span>(() =&gt;
+  StyleSheet.<span style="color:#60A5FA">create</span>({
+    <span style="color:#FDBA74">container</span>: {
+      <span style="color:#FDBA74">padding</span>: <span style="color:#FDBA74">16</span>,
+      <span style="color:#FDBA74">gap</span>: <span style="color:#FDBA74">12</span>,
+      <span style="color:#FDBA74">borderRadius</span>: <span style="color:#FDBA74">8</span>,
+      <span style="color:#FDBA74">backgroundColor</span>: <span style="color:#00C9A7">Colors.card</span>,
+    },
+  }), [Colors]);
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── CTA ───────────────────────────────────────────────────── -->
+<section class="cta-section">
+  <div class="container">
+    <div class="section-label">Get Started</div>
+    <div class="section-title">Stop writing boilerplate.<br>Start shipping.</div>
+    <p class="section-sub">FigmaNative is open source and free. Install the Figma plugin, configure your project, and go.</p>
+    <div class="hero-actions">
+      <a href="https://github.com" class="btn btn-primary">View on GitHub</a>
+      <a href="#how" class="btn btn-secondary">Read the Docs</a>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Footer ───────────────────────────────────────────────── -->
+<footer>
+  <div class="container">
+    <p>FigmaNative &mdash; Open source, MIT licensed.</p>
+    <a href="https://github.com">GitHub</a>
+  </div>
+</footer>
+
+</body>
+</html>

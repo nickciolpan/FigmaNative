@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Figma ↔ React Native — Side by Side</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d0d0d; color: #fff; height: 100vh; display: flex; flex-direction: column; }
+
+    .toolbar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 20px; background: #1a1a1a; border-bottom: 1px solid #333;
+    }
+    .toolbar h1 { font-size: 14px; font-weight: 600; color: #aaa; }
+    .toolbar input {
+      flex: 1; padding: 8px 12px; border-radius: 6px; border: 1px solid #444;
+      background: #111; color: #fff; font-size: 13px; outline: none;
+    }
+    .toolbar input:focus { border-color: #3b82f6; }
+    .toolbar button {
+      padding: 8px 16px; border-radius: 6px; border: none;
+      background: #3b82f6; color: #fff; font-size: 13px; font-weight: 500;
+      cursor: pointer;
+    }
+    .toolbar button:hover { background: #2563eb; }
+
+    .panels {
+      flex: 1; display: flex; min-height: 0;
+    }
+    .panel {
+      flex: 1; display: flex; flex-direction: column; position: relative;
+    }
+    .panel + .panel { border-left: 2px solid #333; }
+    .panel-header {
+      padding: 8px 16px; background: #1a1a1a; border-bottom: 1px solid #333;
+      font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase;
+      letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;
+    }
+    .panel-header .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot.figma { background: #a259ff; }
+    .dot.native { background: #06b6d4; }
+
+    iframe {
+      flex: 1; border: none; background: #fff;
+    }
+
+    .placeholder {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      color: #555; font-size: 14px; text-align: center; padding: 40px;
+      line-height: 1.6;
+    }
+
+    .divider {
+      width: 4px; background: #333; cursor: col-resize; flex-shrink: 0;
+    }
+    .divider:hover { background: #3b82f6; }
+  </style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <h1>Figma ↔ Native</h1>
+    <input type="text" id="figmaUrl" placeholder="Paste Figma embed URL (File → Share → Get embed code, or use figma.com/embed?...)" />
+    <button onclick="loadFigma()">Load</button>
+  </div>
+
+  <div class="panels">
+    <!-- Figma side -->
+    <div class="panel">
+      <div class="panel-header"><span class="dot figma"></span> Figma Design</div>
+      <div id="figmaPanel" class="placeholder">
+        Paste a Figma embed URL above and click Load.<br/><br/>
+        To get an embed URL:<br/>
+        1. Open your Figma file<br/>
+        2. Click Share → Get embed code<br/>
+        3. Copy the URL from the iframe src<br/><br/>
+        Or use: https://www.figma.com/embed?embed_host=share&url=YOUR_FILE_URL
+      </div>
+    </div>
+
+    <div class="divider" id="divider"></div>
+
+    <!-- React Native side -->
+    <div class="panel">
+      <div class="panel-header"><span class="dot native"></span> React Native (Web)</div>
+      <iframe src="http://localhost:8083" id="nativeFrame"></iframe>
+    </div>
+  </div>
+
+  <script>
+    function loadFigma() {
+      const url = document.getElementById('figmaUrl').value.trim();
+      if (!url) return;
+
+      // If they pasted a regular Figma URL, convert to embed
+      let embedUrl = url;
+      if (url.includes('figma.com/design/') || url.includes('figma.com/file/')) {
+        embedUrl = 'https://www.figma.com/embed?embed_host=share&url=' + encodeURIComponent(url);
+      }
+
+      const panel = document.getElementById('figmaPanel');
+      const iframe = document.createElement('iframe');
+      iframe.src = embedUrl;
+      iframe.style.flex = '1';
+      iframe.style.border = 'none';
+      iframe.allowFullscreen = true;
+      panel.replaceWith(iframe);
+      iframe.id = 'figmaPanel';
+    }
+
+    // Draggable divider
+    const divider = document.getElementById('divider');
+    let isDragging = false;
+    divider.addEventListener('mousedown', () => { isDragging = true; });
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const panels = document.querySelector('.panels');
+      const rect = panels.getBoundingClientRect();
+      const pct = ((e.clientX - rect.left) / rect.width) * 100;
+      const left = panels.children[0];
+      const right = panels.children[2];
+      left.style.flex = 'none';
+      left.style.width = pct + '%';
+      right.style.flex = '1';
+    });
+    document.addEventListener('mouseup', () => { isDragging = false; });
+  </script>
+
+</body>
+</html>

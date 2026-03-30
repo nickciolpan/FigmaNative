@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/nickciolpan/Sites/ConnAgri/rurio-informational/**)",
+      "Bash(npx tsc:*)",
+      "Bash(npm install:*)",
+      "Bash(node -e \"const m = require\\(''@anthropic-ai/claude-code''\\); console.log\\(Object.keys\\(m\\)\\);\")",
+      "Bash(xcodebuild -version)",
+      "Bash(xcodebuild -showsdks)"
+    ],
+    "additionalDirectories": [
+      "/Users/nickciolpan/Sites/ConnAgri/rurio-informational/src/screens",
+      "/Users/nickciolpan/Sites/ConnAgri/rurio-informational/src/components"
+    ]
+  }
+}

@@ -1,0 +1,290 @@
+<html>
+<head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+    background: #1e1e1e;
+    color: #e0e0e0;
+    padding: 16px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  h2 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .mode-badge {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .mode-badge.nativewind {
+    background: #1e3a5f;
+    color: #60a5fa;
+    border: 1px solid #2563eb;
+  }
+  .mode-badge.stylesheet {
+    background: #1a3a2a;
+    color: #4ade80;
+    border: 1px solid #16a34a;
+  }
+  .mode-badge.unknown {
+    background: #2a2a2a;
+    color: #888;
+    border: 1px solid #444;
+  }
+  .selection {
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+  }
+  .selection .label {
+    color: #888;
+    font-size: 11px;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+  .selection .name {
+    color: #fff;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .selection.empty .name {
+    color: #666;
+    font-style: italic;
+  }
+  .prompt-group {
+    margin-bottom: 12px;
+  }
+  .prompt-label {
+    font-size: 11px;
+    color: #888;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  textarea {
+    width: 100%;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    color: #e0e0e0;
+    font-family: inherit;
+    font-size: 12px;
+    padding: 8px 10px;
+    resize: vertical;
+    min-height: 48px;
+    max-height: 120px;
+    line-height: 1.4;
+  }
+  textarea:focus {
+    outline: none;
+    border-color: #2563eb;
+  }
+  textarea::placeholder {
+    color: #555;
+  }
+  .btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  button {
+    width: 100%;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, opacity 0.15s;
+  }
+  button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  button:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  .btn-export {
+    background: #2563eb;
+    color: #fff;
+  }
+  .btn-export:hover:not(:disabled) {
+    background: #1d4ed8;
+  }
+  .status {
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: #888;
+    min-height: 36px;
+    max-height: 120px;
+    overflow-y: auto;
+    word-break: break-word;
+  }
+  .status.success { color: #4ade80; border-color: #166534; }
+  .status.error { color: #f87171; border-color: #7f1d1d; }
+  .status.info { color: #60a5fa; border-color: #1e40af; }
+  .status-label {
+    font-size: 11px;
+    color: #666;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+</style>
+</head>
+<body>
+  <h2>
+    FigmaNative
+    <span class="mode-badge unknown" id="modeBadge">...</span>
+  </h2>
+
+  <div class="selection empty" id="selection">
+    <span class="label">Selected:</span>
+    <span class="name" id="selectionName">No component selected</span>
+  </div>
+
+  <div class="prompt-group">
+    <div class="prompt-label">Additional instructions (optional)</div>
+    <textarea id="promptInput" placeholder="e.g. Use a FlatList instead of ScrollView, make the card pressable..."></textarea>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn-export" id="btnExport" disabled>Export to Code</button>
+  </div>
+
+  <div class="status-label">Status</div>
+  <div class="status" id="status">Connecting...</div>
+
+  <script>
+    var selectionEl = document.getElementById('selection');
+    var selectionName = document.getElementById('selectionName');
+    var btnExport = document.getElementById('btnExport');
+    var promptInput = document.getElementById('promptInput');
+    var statusEl = document.getElementById('status');
+    var modeBadge = document.getElementById('modeBadge');
+
+    var hasSelection = false;
+    var serverMode = null;
+
+    var BRIDGE_URL = document.body.getAttribute('data-bridge-url') || 'http://localhost:9100';
+
+    function setStatus(msg, type) {
+      statusEl.textContent = msg;
+      statusEl.className = 'status' + (type ? ' ' + type : '');
+    }
+
+    function updateModeBadge(mode) {
+      serverMode = mode;
+      modeBadge.textContent = mode;
+      modeBadge.className = 'mode-badge ' + (mode === 'nativewind' || mode === 'stylesheet' ? mode : 'unknown');
+    }
+
+    // Fetch server config on load
+    async function fetchConfig() {
+      try {
+        var resp = await fetch(BRIDGE_URL + '/config', {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+        });
+        if (resp.ok) {
+          var data = await resp.json();
+          updateModeBadge(data.mode || 'unknown');
+          setStatus('Ready', '');
+        } else {
+          updateModeBadge('offline');
+          setStatus('Server not responding', 'error');
+        }
+      } catch (err) {
+        updateModeBadge('offline');
+        setStatus('Cannot connect to bridge server. Run: figma2native serve', 'error');
+      }
+    }
+    fetchConfig();
+
+    // Listen for messages from the plugin code
+    window.onmessage = async function(event) {
+      var msg = event.data.pluginMessage;
+      if (!msg) return;
+
+      if (msg.type === 'selection-change') {
+        if (msg.name) {
+          selectionName.textContent = msg.name + ' (' + msg.nodeType + ')';
+          selectionEl.classList.remove('empty');
+          btnExport.disabled = false;
+          hasSelection = true;
+        } else {
+          selectionName.textContent = 'No component selected';
+          selectionEl.classList.add('empty');
+          btnExport.disabled = true;
+          hasSelection = false;
+        }
+      }
+
+      if (msg.type === 'progress') {
+        setStatus(msg.message, 'info');
+        return;
+      }
+
+      if (msg.type === 'export-data') {
+        setStatus('AI generating code (10-30s)...', 'info');
+        try {
+          var body = {
+            name: msg.data.name,
+            node: msg.data,
+            enrich: true,
+            assets: msg.assets || [],
+          };
+          // Include user prompt if provided
+          var userPrompt = promptInput.value.trim();
+          if (userPrompt) {
+            body.userPrompt = userPrompt;
+          }
+          var resp = await fetch(BRIDGE_URL + '/export', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          if (!resp.ok) {
+            var text = await resp.text();
+            throw new Error('Server responded ' + resp.status + ': ' + text);
+          }
+          var result = await resp.json().catch(function() { return {}; });
+          var assetInfo = (msg.assets && msg.assets.length > 0) ? ' + ' + msg.assets.length + ' assets' : '';
+          setStatus('Exported ' + msg.data.name + ' successfully' + assetInfo, 'success');
+        } catch (err) {
+          setStatus('Export failed: ' + err.message, 'error');
+        }
+      }
+    };
+
+    // Export button
+    btnExport.addEventListener('click', function() {
+      if (!hasSelection) return;
+      setStatus('Extracting component data & assets...', 'info');
+      parent.postMessage({ pluginMessage: { type: 'export' } }, '*');
+    });
+  </script>
+</body>
+</html>

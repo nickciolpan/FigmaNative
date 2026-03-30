@@ -1,0 +1,12 @@
+{
+  "name": "FigmaNative — Component Library Generator",
+  "id": "figma-native-gen",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": ["none"],
+    "devAllowedDomains": ["http://localhost:9100"]
+  }
+}
