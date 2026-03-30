@@ -4,14 +4,10 @@
 
 import type { FigmaNativeConfig } from "../config";
 import type { StyleBackend } from "./types";
-import { NativeWindBackend } from "./nativewind";
 import { StyleSheetBackend } from "./stylesheet";
 
 export function createBackend(config: FigmaNativeConfig): StyleBackend {
-  if (config.mode === "stylesheet") {
-    return new StyleSheetBackend(config);
-  }
-  return new NativeWindBackend();
+  return new StyleSheetBackend(config);
 }
 
 export type { StyleBackend } from "./types";

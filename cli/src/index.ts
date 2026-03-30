@@ -6,7 +6,7 @@
  * Usage:
  *   figma2native export <figma-url> [--screen <name>] [--out <path>]
  *   figma2native inspect <figma-url>
- *   figma2native serve [-p <port>] [--mode <nativewind|stylesheet>]
+ *   figma2native serve [-p <port>]
  *
  * Environment:
  *   FIGMA_TOKEN — your Figma personal access token
@@ -126,11 +126,10 @@ program
   .option("-s, --screen <name>", "Screen component name")
   .option("-o, --out <path>", "Output file path")
   .option("--dry-run", "Print generated code to stdout instead of writing")
-  .option("--mode <mode>", "Style backend: nativewind or stylesheet")
   .action(
     async (
       url: string,
-      opts: { screen?: string; out?: string; dryRun?: boolean; mode?: string }
+      opts: { screen?: string; out?: string; dryRun?: boolean }
     ) => {
       const token = getToken();
       const { fileKey, nodeId } = parseFigmaUrl(url);
@@ -143,14 +142,10 @@ program
         process.exit(1);
       }
 
-      // Load config with optional mode override
       const config = loadConfig();
-      if (opts.mode === "stylesheet" || opts.mode === "nativewind") {
-        config.mode = opts.mode;
-      }
       const backend = createBackend(config);
 
-      console.log(`Fetching from Figma... (mode: ${config.mode})`);
+      console.log(`Fetching from Figma...`);
 
       const [node, file] = await Promise.all([
         fetchNode(fileKey, nodeId, token),
@@ -231,15 +226,10 @@ program
   .command("serve")
   .description("Start the Figma <-> React Native bridge server")
   .option("-p, --port <number>", "Port to listen on", "9100")
-  .option("--mode <mode>", "Style backend: nativewind or stylesheet")
-  .action((opts: { port: string; mode?: string }) => {
+  .action((opts: { port: string }) => {
     const port = parseInt(opts.port, 10);
 
-    // Load config with optional mode override
     const config = loadConfig();
-    if (opts.mode === "stylesheet" || opts.mode === "nativewind") {
-      config.mode = opts.mode;
-    }
     const backend = createBackend(config);
 
     startBridgeServer(port, backend, config);

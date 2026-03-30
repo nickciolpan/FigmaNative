@@ -27,11 +27,6 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
-  .mode-badge.nativewind {
-    background: #1e3a5f;
-    color: #60a5fa;
-    border: 1px solid #2563eb;
-  }
   .mode-badge.stylesheet {
     background: #1a3a2a;
     color: #4ade80;
@@ -198,7 +193,7 @@
     function updateModeBadge(mode) {
       serverMode = mode;
       modeBadge.textContent = mode;
-      modeBadge.className = 'mode-badge ' + (mode === 'nativewind' || mode === 'stylesheet' ? mode : 'unknown');
+      modeBadge.className = 'mode-badge ' + (mode === 'stylesheet' ? mode : 'unknown');
     }
 
     // Fetch server config on load

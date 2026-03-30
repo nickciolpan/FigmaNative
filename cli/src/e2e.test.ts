@@ -5,7 +5,8 @@
 
 import { generateScreen } from "./codegen";
 import type { FigmaNode } from "./figma-api";
-import { NativeWindBackend } from "./backends/nativewind";
+import { StyleSheetBackend } from "./backends/stylesheet";
+import type { FigmaNativeConfig } from "./config";
 
 // ─── Fake Figma node tree (mimics what the API returns) ────────
 
@@ -120,7 +121,19 @@ const componentNames: Record<string, string> = {
 
 console.log("═══ E2E Test: Figma → React Native Codegen ═══\n");
 
-const backend = new NativeWindBackend();
+const config: FigmaNativeConfig = {
+  theme: {
+    colors: {
+      background: "#FFFFFF",
+      text: "#27272A",
+      brand: "#00686A",
+    },
+    hook: "useColors",
+    import: "../theme/colors",
+  },
+};
+
+const backend = new StyleSheetBackend(config);
 const output = generateScreen("LoginScreen", fakeLoginScreen, componentNames, backend);
 
 console.log("Generated code:\n");

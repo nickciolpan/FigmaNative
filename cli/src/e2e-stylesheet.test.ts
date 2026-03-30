@@ -12,7 +12,6 @@ import type { FigmaNativeConfig } from "./config";
 
 // Rurio-like config
 const config: FigmaNativeConfig = {
-  mode: "stylesheet",
   theme: {
     colors: {
       background: "#FFFFFF",

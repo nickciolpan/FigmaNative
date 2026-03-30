@@ -10,7 +10,32 @@ import * as fs from "fs";
 import * as path from "path";
 import type { FigmaNativeConfig } from "./config";
 
-const SYSTEM_PROMPT = `You are an expert React Native developer. You convert Figma design data into clean, production-ready React Native components.
+const DEFAULT_STYLING = `- Use StyleSheet.create inside useMemo with useColors() for theme tokens, exactly like the reference
+- Match the reference component's import style, export style, and patterns exactly`;
+
+const DEFAULT_STRUCTURE = `- Convert Figma auto-layout (HORIZONTAL/VERTICAL) to flexDirection row/column
+- Map Figma padding, gap (itemSpacing), cornerRadius, fills directly to RN style props
+- Convert Figma fills to backgroundColor using theme color tokens when they match
+- Map Figma text properties (fontSize, fontWeight, lineHeight) directly`;
+
+const DEFAULT_QUALITY = `- Use TypeScript with a proper Props type
+- ALL props MUST have default values so the component renders without any props passed. Use realistic sample data from the Figma text content as defaults.
+- Use meaningful prop names derived from the Figma layer structure
+- Add nativeID props matching each layer's figmaId for two-way traceability
+- Handle images as Image components with a placeholder require() comment
+- Generate clean, readable code — no comments explaining obvious things`;
+
+const DEFAULT_OUTPUT = `- Return ONLY the .tsx file content. No markdown fences, no explanation.
+- The component must be immediately usable — valid TypeScript, correct imports.`;
+
+function buildSystemPrompt(config: FigmaNativeConfig): string {
+  const styling = config.prompts?.styling || DEFAULT_STYLING;
+  const structure = config.prompts?.structure || DEFAULT_STRUCTURE;
+  const quality = config.prompts?.quality || DEFAULT_QUALITY;
+  const output = config.prompts?.output || DEFAULT_OUTPUT;
+  const extra = config.prompts?.extra ? `\n\nADDITIONAL INSTRUCTIONS:\n${config.prompts.extra}` : "";
+
+  return `You are an expert React Native developer. You convert Figma design data into clean, production-ready React Native components.
 
 You receive:
 1. A Figma node tree (JSON) extracted from a designer's selection
@@ -20,27 +45,17 @@ You receive:
 Your job is to generate a .tsx component file that:
 
 STYLING:
-- If mode is "stylesheet": use StyleSheet.create inside useMemo with useColors() for theme tokens, exactly like the reference
-- If mode is "nativewind": use className with NativeWind/Tailwind classes
-- Match the reference component's import style, export style, and patterns exactly
+${styling}
 
 STRUCTURE:
-- Convert Figma auto-layout (HORIZONTAL/VERTICAL) to flexDirection row/column
-- Map Figma padding, gap (itemSpacing), cornerRadius, fills directly to RN style props
-- Convert Figma fills to backgroundColor using theme color tokens when they match
-- Map Figma text properties (fontSize, fontWeight, lineHeight) directly
+${structure}
 
 QUALITY:
-- Use TypeScript with a proper Props type
-- ALL props MUST have default values so the component renders without any props passed. Use realistic sample data from the Figma text content as defaults.
-- Use meaningful prop names derived from the Figma layer structure
-- Add nativeID props matching each layer's figmaId for two-way traceability
-- Handle images as Image components with a placeholder require() comment
-- Generate clean, readable code — no comments explaining obvious things
+${quality}
 
 OUTPUT:
-- Return ONLY the .tsx file content. No markdown fences, no explanation.
-- The component must be immediately usable — valid TypeScript, correct imports.`;
+${output}${extra}`;
+}
 
 export async function generateComponentWithLLM(
   componentName: string,
@@ -75,13 +90,15 @@ Dark colors: ${JSON.stringify(config.theme.darkColors || {}, null, 2)}`
     ? `\n## Additional Instructions from Designer\n${userPrompt}`
     : "";
 
-  const prompt = `${SYSTEM_PROMPT}
+  const systemPrompt = buildSystemPrompt(config);
+
+  const prompt = `${systemPrompt}
 
 ## Component Name
 ${componentName}
 
 ## Project Style Mode
-${config.mode}
+stylesheet
 
 ## Theme
 ${themeInfo}
@@ -105,7 +122,7 @@ Generate the ${componentName} component. Return ONLY the .tsx file content.`;
 
   console.log(`[llm-codegen] Generating ${componentName}...`);
 
-  let code = await callClaude(prompt);
+  let code = await callClaude(prompt, config);
 
   // Extract just the code — strip any conversational text the LLM adds
   code = extractCode(code, componentName);
@@ -121,7 +138,7 @@ function findReferenceComponent(projectRoot: string, config: FigmaNativeConfig):
   );
 
   if (!fs.existsSync(componentsDir)) {
-    return getDefaultReference(config.mode);
+    return getDefaultReference();
   }
 
   const files = fs
@@ -129,7 +146,7 @@ function findReferenceComponent(projectRoot: string, config: FigmaNativeConfig):
     .filter((f) => f.endsWith(".tsx") && !f.startsWith("index"));
 
   if (files.length === 0) {
-    return getDefaultReference(config.mode);
+    return getDefaultReference();
   }
 
   // Pick a file close to 1500 bytes (not too trivial, not too complex)
@@ -196,9 +213,8 @@ function extractCode(raw: string, componentName: string): string {
   return cleaned;
 }
 
-function getDefaultReference(mode: string): string {
-  if (mode === "stylesheet") {
-    return `import * as React from 'react';
+function getDefaultReference(): string {
+  return `import * as React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useColors } from '../theme/colors';
 
@@ -216,16 +232,6 @@ export default function Example({ title }: Props) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{title}</Text>
-    </View>
-  );
-}`;
-  }
-  return `import { View, Text } from "react-native";
-type Props = { title: string };
-export function Example({ title }: Props) {
-  return (
-    <View className="p-4 bg-white">
-      <Text className="text-base font-semibold text-gray-900">{title}</Text>
     </View>
   );
 }`;

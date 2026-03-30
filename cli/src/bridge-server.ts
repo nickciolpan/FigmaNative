@@ -150,7 +150,7 @@ async function handleExport(
   const componentName = toPascalCase(name);
   const useAI = payload.enrich === true;
   console.log(
-    `[bridge] Received component "${componentName}" (type=${node.type}, children=${node.children?.length ?? 0}, mode=${config.mode}, ai=${useAI})`
+    `[bridge] Received component "${componentName}" (type=${node.type}, children=${node.children?.length ?? 0}, mode=stylesheet, ai=${useAI})`
   );
 
   // 0. Save assets (images, vectors) to the project assets directory
@@ -214,7 +214,7 @@ async function handleExport(
   updatePreviewRegistry(config);
 
   const relativePath = path.relative(PROJECT_ROOT, filePath);
-  sendJson(res, 200, { success: true, path: relativePath, code, mode: config.mode });
+  sendJson(res, 200, { success: true, path: relativePath, code, mode: "stylesheet" });
 }
 
 /**
@@ -438,7 +438,7 @@ function handleGetConfig(
   config: FigmaNativeConfig
 ): void {
   sendJson(res, 200, {
-    mode: config.mode,
+    mode: "stylesheet",
     hasTheme: !!config.theme,
     themeHook: config.theme?.hook || null,
   });
@@ -472,7 +472,7 @@ export function startBridgeServer(
       } else if (req.method === "GET" && url === "/config") {
         handleGetConfig(req, res, config);
       } else if (req.method === "GET" && url === "/health") {
-        sendJson(res, 200, { status: "ok", mode: config.mode });
+        sendJson(res, 200, { status: "ok", mode: "stylesheet" });
       } else {
         sendJson(res, 404, { error: "Not found" });
       }
@@ -484,7 +484,7 @@ export function startBridgeServer(
 
   server.listen(port, () => {
     console.log(`\nFigma <-> React Native bridge server`);
-    console.log(`Mode: ${config.mode}`);
+    console.log(`Mode: stylesheet`);
     if (config.theme?.hook) {
       console.log(`Theme hook: ${config.theme.hook} (from ${config.theme.import})`);
     }

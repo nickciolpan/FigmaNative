@@ -4,6 +4,9 @@
  */
 
 import { spawn } from "child_process";
+import * as fs from "fs";
+import * as path from "path";
+import type { FigmaNativeConfig } from "./config";
 
 type Mode = "api" | "cli";
 
@@ -13,34 +16,59 @@ function getMode(): Mode {
 }
 
 /**
- * Find the claude CLI binary — use system binary directly.
+ * Find the claude CLI binary.
+ * Checks config.ai.claudePath first, then common system paths,
+ * then node_modules, then falls back to PATH.
  */
-function findClaudeBin(): string {
-  return "/opt/homebrew/bin/claude";
+function findClaudeBin(config?: FigmaNativeConfig): string {
+  // 1. Explicit config path
+  if (config?.ai?.claudePath) {
+    if (fs.existsSync(config.ai.claudePath)) {
+      return config.ai.claudePath;
+    }
+    console.warn(`[llm] Configured claudePath "${config.ai.claudePath}" not found, trying fallbacks`);
+  }
+
+  // 2. Common system paths
+  const commonPaths = [
+    "/opt/homebrew/bin/claude",
+    "/usr/local/bin/claude",
+  ];
+  for (const p of commonPaths) {
+    if (fs.existsSync(p)) return p;
+  }
+
+  // 3. node_modules
+  const nmPath = path.resolve("node_modules", ".bin", "claude");
+  if (fs.existsSync(nmPath)) return nmPath;
+
+  // 4. Fall back to PATH
+  return "claude";
 }
 
-export async function callClaude(prompt: string): Promise<string> {
+export async function callClaude(prompt: string, config?: FigmaNativeConfig): Promise<string> {
   const mode = getMode();
   console.log(`[llm] Using ${mode} mode`);
 
   switch (mode) {
     case "api":
-      return callViaAPI(prompt);
+      return callViaAPI(prompt, config);
     case "cli":
-      return callViaCLI(prompt);
+      return callViaCLI(prompt, config);
   }
 }
 
 /**
  * Call via Anthropic API (needs ANTHROPIC_API_KEY).
  */
-async function callViaAPI(prompt: string): Promise<string> {
+async function callViaAPI(prompt: string, config?: FigmaNativeConfig): Promise<string> {
   const { default: Anthropic } = await import("@anthropic-ai/sdk");
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+  const model = config?.ai?.model || "claude-sonnet-4-20250514";
   console.log("[llm] Calling Claude API...");
   const response = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
+    model,
     max_tokens: 8192,
     messages: [{ role: "user", content: prompt }],
   });
@@ -54,8 +82,11 @@ async function callViaAPI(prompt: string): Promise<string> {
 /**
  * Call via Claude Code CLI binary — streams output to terminal in real-time.
  */
-async function callViaCLI(prompt: string): Promise<string> {
-  const claudeBin = findClaudeBin();
+async function callViaCLI(prompt: string, config?: FigmaNativeConfig): Promise<string> {
+  const claudeBin = findClaudeBin(config);
+  const model = config?.ai?.model || "sonnet";
+  const timeout = config?.ai?.timeout || 120_000;
+
   console.log(`[llm] Using claude binary: ${claudeBin}`);
   console.log(`[llm] Streaming generation...`);
   console.log(`[llm] ${"─".repeat(60)}`);
@@ -64,7 +95,7 @@ async function callViaCLI(prompt: string): Promise<string> {
     const child = spawn(claudeBin, [
       "-p", prompt,
       "--output-format", "text",
-      "--model", "sonnet",
+      "--model", model,
     ], {
       env: { ...process.env },
       stdio: ["ignore", "pipe", "pipe"],
@@ -90,13 +121,13 @@ async function callViaCLI(prompt: string): Promise<string> {
       process.stderr.write(`\x1b[2m${text}\x1b[0m`);
     });
 
-    const timeout = setTimeout(() => {
+    const timer = setTimeout(() => {
       child.kill("SIGTERM");
-      reject(new Error("Claude CLI timed out after 120s"));
-    }, 120_000);
+      reject(new Error(`Claude CLI timed out after ${timeout / 1000}s`));
+    }, timeout);
 
     child.on("close", (code) => {
-      clearTimeout(timeout);
+      clearTimeout(timer);
       console.log(`\n[llm] ${"─".repeat(60)}`);
       console.log(`[llm] Done — ${charCount} chars, exit code ${code}`);
 
@@ -108,7 +139,7 @@ async function callViaCLI(prompt: string): Promise<string> {
     });
 
     child.on("error", (err: any) => {
-      clearTimeout(timeout);
+      clearTimeout(timer);
       if (err.code === "ENOENT") {
         reject(new Error(
           "No Claude access available. Either:\n" +
